@@ -5,4 +5,10 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_executable(mes
     main.cpp
+    GlobalData.cpp
 )
+
+
+configure_file(Test1.txt Test1.txt COPYONLY) 
+configure_file(Test2.txt Test2.txt COPYONLY)
+configure_file(Test3.txt Test3.txt COPYONLY)
