@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 
+
 class GlobalData {
 public:
     int SimulationTime;
@@ -13,6 +14,7 @@ public:
     int SpecificHeat;
     int nN;
     int nE;
+    int npc;
 
     GlobalData();
     void load(const std::string& filename);

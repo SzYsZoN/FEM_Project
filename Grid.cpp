@@ -26,17 +26,90 @@ void Node::print() const {
 
 
 // ===== Element =====
-Element::Element(int id, Node* n1, Node* n2, Node* n3, Node* n4) : id(id) {
-    nodes[0] = n1; nodes[1] = n2; nodes[2] = n3; nodes[3] = n4;
-}
-void Element::print() const {
-    cout << "  - Element " << setw(3) << id << ": "
-         << nodes[0]->id << " " << nodes[1]->id << " "
-         << nodes[2]->id << " " << nodes[3]->id << "\n";
+Element::Element(int id, Node* n1, Node* n2, Node* n3, Node* n4, int npc)
+    : id(id), jac(npc)
+{
+    nodes[0] = n1;
+    nodes[1] = n2;
+    nodes[2] = n3;
+    nodes[3] = n4;
 }
 
+void Element::computeJacobian(const ElemUniv& eu)
+{
+    int npc = eu.dN_dXi.size();
+
+
+    jac.resize(npc);
+    dNdx.resize(npc);
+    dNdy.resize(npc);
+
+    for (int p = 0; p < npc; p++) {
+
+        // 1️⃣ Liczenie macierzy Jacobiego J
+        double dx_dxi  = 0, dy_dxi = 0;
+        double dx_deta = 0, dy_deta = 0;
+
+        for (int i = 0; i < 4; i++) {
+            dx_dxi  += nodes[i]->x * eu.dN_dXi[p][i];
+            dy_dxi  += nodes[i]->y * eu.dN_dXi[p][i];
+
+            dx_deta += nodes[i]->x * eu.dN_dEta[p][i];
+            dy_deta += nodes[i]->y * eu.dN_dEta[p][i];
+        }
+
+        jac[p].J[0][0] = dx_dxi;
+        jac[p].J[0][1] = dy_dxi;
+        jac[p].J[1][0] = dx_deta;
+        jac[p].J[1][1] = dy_deta;
+
+        // 2️⃣ Liczenie detJ
+        jac[p].detJ =
+            jac[p].J[0][0] * jac[p].J[1][1] -
+            jac[p].J[0][1] * jac[p].J[1][0];
+
+        // 3️⃣ Liczenie odwrotności Jacobiego
+        double invDet = 1.0 / jac[p].detJ;
+
+        jac[p].invJ[0][0] =  jac[p].J[1][1] * invDet;
+        jac[p].invJ[0][1] = -jac[p].J[0][1] * invDet;
+        jac[p].invJ[1][0] = -jac[p].J[1][0] * invDet;
+        jac[p].invJ[1][1] =  jac[p].J[0][0] * invDet;
+
+        // 4️⃣ Liczenie pochodnych dN/dx, dN/dy
+        for (int i = 0; i < 4; i++) {
+            dNdx[p][i] =
+                jac[p].invJ[0][0] * eu.dN_dXi[p][i] +
+                jac[p].invJ[0][1] * eu.dN_dEta[p][i];
+
+            dNdy[p][i] =
+                jac[p].invJ[1][0] * eu.dN_dXi[p][i] +
+                jac[p].invJ[1][1] * eu.dN_dEta[p][i];
+        }
+    }
+}
+
+
+void Element::print() const {
+    cout << "--- Element " << id << " ---\n";
+
+    for (size_t p = 0; p < jac.size(); p++) {
+        cout << "Macierz Jakobiego dla punktu " << p << "\n";
+        jac[p].print();
+
+        cout << "dN/dx = ";
+        for (double v : dNdx[p]) cout << v << ", ";
+        cout << "\n";
+
+        cout << "dN/dy = ";
+        for (double v : dNdy[p]) cout << v << ", ";
+        cout << "\n";
+    }
+}
+
+
 // ===== Grid =====
-Grid::Grid() : nN(0), nE(0) {}
+Grid::Grid(int npc) : nN(0), nE(0), npc(npc) {}
 
 void Grid::load(const string& filename) {
     ifstream file(filename);
@@ -70,7 +143,8 @@ void Grid::load(const string& filename) {
                 elements.emplace_back(
                     id,
                     &nodes[n1-1], &nodes[n2-1],
-                    &nodes[n3-1], &nodes[n4-1]
+                    &nodes[n3-1], &nodes[n4-1],
+                    npc
                 );
             }
             continue;

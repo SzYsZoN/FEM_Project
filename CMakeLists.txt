@@ -7,6 +7,10 @@ add_executable(mes
     main.cpp
     GlobalData.cpp
     Grid.cpp
+    Gauss.cpp
+    ElemUniv.cpp
+    Jacobian.cpp
+    
 )
 
 

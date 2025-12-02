@@ -18,7 +18,7 @@ static inline string commas_to_spaces(string s) { //zamienia przecinki na spacje
 
 GlobalData::GlobalData()//konstruktor
     : SimulationTime(0), SimulationStepTime(0), Conductivity(0), Alfa(0),
-      Tot(0), InitialTemp(0), Density(0), SpecificHeat(0), nN(0), nE(0) {}
+      Tot(0), InitialTemp(0), Density(0), SpecificHeat(0), nN(0), nE(0),npc(0) {}//statyczne npc 
 
 void GlobalData::load(const string& filename) {//wczytywanie danych z pliku txt 
     ifstream file(filename);
@@ -66,5 +66,6 @@ void GlobalData::print() const {//wypisywanie danych globalnych ze struktury
          << " Density            : " << Density            << "\n"
          << " SpecificHeat       : " << SpecificHeat       << "\n"
          << " Nodes number (hdr) : " << nN                 << "\n"
-         << " Elements number(h) : " << nE                 << "\n\n";
+         << " Elements number(h) : " << nE                 << "\n"
+         << " NPC (Gauss pts)    : " << npc                << "\n\n";
 }
