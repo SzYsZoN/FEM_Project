@@ -6,9 +6,10 @@
 #include "ElemUniv.h"
 
 
+
 int main() {
     GlobalData data;
-    data.npc = 1; // statyczne ustawienie liczby punktów całkowania 
+    data.npc = 2; // statyczne ustawienie liczby punktów całkowania 
     data.load("Test2.txt");
     data.print();
 
@@ -22,17 +23,19 @@ int main() {
     
     std::ofstream fout("jacobians_output.txt");
 
-    
-
-    for (auto& el : grid.elements)
-    el.computeJacobian(eu);
-
     // przekierowanie cout → plik
     std::streambuf* oldCout = std::cout.rdbuf();
     std::cout.rdbuf(fout.rdbuf());
 
-    eu.print();
-    grid.print();
+    for (auto& el : grid.elements){
+    el.computeJacobian(eu);
+    el.computeH(eu, gq, data.Conductivity);
+    el.printAll(gq);
+    }
+
+    
+
+    
 
     std::cout.rdbuf(oldCout); // przywróć cout do konsoli
 

@@ -24,6 +24,19 @@ void Node::print() const {
          << fixed << setprecision(10) << x << ", " << y << ")\n";
 }
 
+//Wypisywanie macierzy 
+void printMatrix4(const std::vector<std::vector<double>>& M, const std::string& name)
+{
+    std::cout << name << " =\n";
+    for (int i = 0; i < 4; i++) {
+        std::cout << "  ";
+        for (int j = 0; j < 4; j++) {
+            std::cout << std::setw(12) << M[i][j] << ' '; //wyrownanie do prawej 
+        }
+        std::cout << "\n";
+    }
+    std::cout << "\n";
+}
 
 // ===== Element =====
 Element::Element(int id, Node* n1, Node* n2, Node* n3, Node* n4, int npc)
@@ -90,6 +103,49 @@ void Element::computeJacobian(const ElemUniv& eu)
 }
 
 
+void Element::computeH(const ElemUniv& eu, const GaussQuadrature& gq, double k)
+{
+    int npc = gq.points.size();
+
+    H.resize(npc, std::vector<std::vector<double>>(4, std::vector<double>(4, 0.0)));
+    Hsum.assign(4, std::vector<double>(4, 0.0));
+
+    for (int p = 0; p < npc; p++)
+    {
+        double wx = gq.points[p].weight;  // dla 2x2 zawsze 1
+        double detJ = jac[p].detJ;
+
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                double term =
+                    dNdx[p][i] * dNdx[p][j] +
+                    dNdy[p][i] * dNdy[p][j];
+
+                H[p][i][j] = k * term * wx * detJ;
+
+                Hsum[i][j] += H[p][i][j];
+            }
+        }
+    }
+}
+
+void Element::printH() const
+{
+    std::cout << "==== Element " << id << " ====\n";
+
+    // wypisz macierze dla każdego punktu całkowania
+    for (int p = 0; p < H.size(); p++) {
+        std::cout << "-- H for Gauss Point " << p << " --\n";
+        printMatrix4(H[p], "H_pc");
+    }
+
+    // wypisz sumę wszystkich H_pc
+    printMatrix4(Hsum, "Hsum (local stiffness matrix)");
+}
+
+
 void Element::print() const {
     cout << "--- Element " << id << " ---\n";
 
@@ -105,6 +161,51 @@ void Element::print() const {
         for (double v : dNdy[p]) cout << v << ", ";
         cout << "\n";
     }
+}
+
+void Element::printAll(const GaussQuadrature& gq) const
+{
+    std::cout << "\n=============================================\n";
+    std::cout << "Obliczenia macierzy Jakobiego dla elementu nr " << id << "\n";
+
+    int npc = gq.points.size();
+
+    for (int p = 0; p < npc; p++)
+    {
+        std::cout << "Macierz Jakobiego dla " << p+1 << " punktu calkowania\n";
+
+        std::cout << jac[p].J[0][0] << "  " << jac[p].J[0][1] << "\n"
+                  << jac[p].J[1][0] << "  " << jac[p].J[1][1] << "\n";
+
+        std::cout << "DetJ = " << jac[p].detJ 
+                  << " dla " << p+1 << " punktu calkowania\n\n";
+
+        // dNdx
+        std::cout << "wartosc dN/dx rowna sie\n";
+        for (int i = 0; i < 4; i++)
+            std::cout << std::fixed << std::setprecision(6) << dNdx[p][i] << ", ";
+        std::cout << "\n";
+
+        // dNdy
+        std::cout << "wartosc dN/dy rowna sie\n";
+        for (int i = 0; i < 4; i++)
+            std::cout << std::fixed << std::setprecision(6) << dNdy[p][i] << ", ";
+        std::cout << "\n\n";
+    }
+
+    // ----------- Hsum (macierz lokalna) ----------
+    std::cout << "H dla elementu - " << id << "\n";
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            std::cout << std::setw(12) 
+                      << std::fixed << std::setprecision(6)
+                      << Hsum[i][j];
+        }
+        std::cout << "\n";
+    }
+
+    std::cout << "\n";
 }
 
 
