@@ -1,7 +1,9 @@
 #include "Grid.h"
 #include <fstream>
 #include <sstream>
+#include <cmath>
 #include <iomanip>
+#include <iostream>
 #include <cctype>
 
 using namespace std;
@@ -145,6 +147,86 @@ void Element::printH() const
     printMatrix4(Hsum, "Hsum (local stiffness matrix)");
 }
 
+void Element::computeHbc(const GlobalData& data, const ElemUniv& eu)
+{
+    Hbc.assign(4, std::vector<double>(4, 0.0));
+
+    // Element nodes in global coordinates
+    double x[4], y[4];
+    for (int i = 0; i < 4; i++) {
+        x[i] = nodes[i]->x;
+        y[i] = nodes[i]->y;
+    }
+
+    // Pairs of local node indices for each face:
+    // 0: bottom (N1-N2)
+    // 1: right  (N2-N3)
+    // 2: top    (N3-N4)
+    // 3: left   (N4-N1)
+    int faceNodes[4][2] = { {0,1}, {1,2}, {2,3}, {3,0} };
+
+    for (int f = 0; f < 4; f++)
+    {
+        int a = faceNodes[f][0];
+        int b = faceNodes[f][1];
+
+        if (!nodes[a]->BC || !nodes[b]->BC) // warunek brzegowy jak nie to przechodzi do kolejnej ściany
+            continue;
+
+        
+        double dx = x[b] - x[a];
+        double dy = y[b] - y[a];
+        double detJ = std::sqrt(dx*dx + dy*dy) / 2.0;
+
+        for (int p = 0; p < eu.surfaces[f].N.size(); p++) 
+        {
+            const auto& N = eu.surfaces[f].N[p];
+            double w = eu.surfaces[f].w[p];
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    Hbc[i][j] += data.Alfa * N[i] * N[j] * w * detJ;
+                }
+            }
+        }
+    }
+}
+
+void Element::computeP(const GlobalData& data, const ElemUniv& eu)
+{
+    P_local.assign(4, 0.0);
+
+    double x[4], y[4];
+    for (int i = 0; i < 4; i++) {
+        x[i] = nodes[i]->x;
+        y[i] = nodes[i]->y;
+    }
+
+    int faceNodes[4][2] = { {0,1}, {1,2}, {2,3}, {3,0} };
+
+    for (int f = 0; f < 4; f++)
+    {
+        int a = faceNodes[f][0];
+        int b = faceNodes[f][1];
+
+        if (!nodes[a]->BC || !nodes[b]->BC) continue;
+
+        double dx = x[b] - x[a];
+        double dy = y[b] - y[a];
+        double detJ = sqrt(dx*dx + dy*dy) / 2.0;
+
+        for (int p = 0; p < eu.surfaces[f].N.size(); p++)
+        {
+            const auto& N = eu.surfaces[f].N[p];
+            double w = eu.surfaces[f].w[p];
+
+            for (int i = 0; i < 4; i++)
+                P_local[i] += data.Alfa * data.Tot * N[i] * w * detJ;
+        }
+    }
+}
+
 
 void Element::print() const {
     cout << "--- Element " << id << " ---\n";
@@ -205,6 +287,15 @@ void Element::printAll(const GaussQuadrature& gq) const
         std::cout << "\n";
     }
 
+    std::cout << "P dla elementu - " << id << "\n";
+
+    for (int i = 0; i < 4; i++) {
+        std::cout << std::setw(12) 
+                  << std::fixed << std::setprecision(6)
+                  << P_local[i];
+        std::cout << "\n";
+    }
+
     std::cout << "\n";
 }
 
@@ -213,6 +304,7 @@ void Element::printAll(const GaussQuadrature& gq) const
 Grid::Grid(int npc) : nN(0), nE(0), npc(npc) {}
 
 void Grid::load(const string& filename) {
+    
     ifstream file(filename);
     if (!file.is_open()) {
         cerr << "Nie mozna otworzyc pliku: " << filename << endl;
@@ -255,7 +347,10 @@ void Grid::load(const string& filename) {
             string norm = commas_to_spaces(line);
             stringstream ss(norm);
             int idx;
-            while (ss >> idx) bc.push_back(idx);
+            while (ss >> idx){ 
+                nodes[idx - 1].BC = true;
+                bc.push_back(idx);
+            }
             continue;
         }
     }
@@ -263,10 +358,46 @@ void Grid::load(const string& filename) {
     nN = static_cast<int>(nodes.size());
     nE = static_cast<int>(elements.size());
 
-   
+    H_global.assign(nN, std::vector<double>(nN, 0.0)); // H
 
-
+    P_global.assign(nN, 0.0); //P
 }
+
+void Grid::assembleH(const GlobalData& data,const GaussQuadrature& gq, const ElemUniv& eu)
+{
+    
+
+    for (auto& el : elements) // liczenie lokalnych macierzy i agregacja
+    {
+        el.computeJacobian(eu);
+        el.computeH(eu, gq, data.Conductivity);
+        el.computeHbc(data, eu);
+        el.computeP(data,eu);
+
+        int ids[4] = {
+            el.nodes[0]->id - 1,
+            el.nodes[1]->id - 1,
+            el.nodes[2]->id - 1,
+            el.nodes[3]->id - 1
+        };
+
+        // H
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                H_global[ids[i]][ids[j]] += el.Hsum[i][j] + el.Hbc[i][j];
+            }
+        }
+        // P 
+        for (int i = 0; i < 4; i++)
+        {    
+            P_global[ids[i]] += el.P_local[i];
+        }
+
+        }
+}
+
 
 void Grid::print() const {
     cout << " GRID DATA \n";
@@ -285,4 +416,19 @@ void Grid::print() const {
         }
         cout << "\n";
     }
+}
+
+
+void Grid::printHGlobal()const{
+        for (int i = 0; i < nN; i++) {
+        for (int j = 0; j < nN; j++) {
+            std::cout << H_global[i][j] << " ";
+        }
+        std::cout << "\n";
+    }
+}
+
+void Grid::printPGlobal() const {
+    for(int i = 0; i < nN; i++)
+        std::cout << P_global[i] << "\n";
 }

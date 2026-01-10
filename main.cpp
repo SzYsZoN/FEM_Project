@@ -10,7 +10,7 @@
 int main() {
     GlobalData data;
     data.npc = 2; // statyczne ustawienie liczby punktów całkowania 
-    data.load("Test2.txt");
+    data.load("Test1.txt");
     data.print();
 
 
@@ -19,23 +19,23 @@ int main() {
 
 
     Grid grid(data.npc);
-    grid.load("Test2.txt");
+    grid.load("Test1.txt");
     
     std::ofstream fout("jacobians_output.txt");
+
+
+    grid.assembleH(data,gq, eu);
 
     // przekierowanie cout → plik
     std::streambuf* oldCout = std::cout.rdbuf();
     std::cout.rdbuf(fout.rdbuf());
 
     for (auto& el : grid.elements){
-    el.computeJacobian(eu);
-    el.computeH(eu, gq, data.Conductivity);
-    el.printAll(gq);
+        el.printAll(gq);
     }
 
-    
-
-    
+    grid.printHGlobal();
+    grid.printPGlobal();
 
     std::cout.rdbuf(oldCout); // przywróć cout do konsoli
 

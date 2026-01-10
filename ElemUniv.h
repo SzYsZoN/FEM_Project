@@ -4,11 +4,23 @@
 #include <vector>
 #include <array>
 #include <iostream>
+#include <cmath>
 #include "Gauss.h"
 
 struct ElemUniv {
+    
     std::vector<std::array<double,4>> dN_dXi;
     std::vector<std::array<double,4>> dN_dEta;
+
+    struct Surface {
+    std::vector<std::vector<double>> N;   
+    std::vector<double> w; 
+    std::vector<double> detJ;        
+
+    };
+
+    Surface surfaces[4]; // bok1, bok2, bok3, bok4
+
 
     explicit ElemUniv(int npc) {
         dN_dXi.resize(npc);
