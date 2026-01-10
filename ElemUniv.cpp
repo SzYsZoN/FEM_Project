@@ -4,10 +4,16 @@
 ElemUniv createElemUniv(const GaussQuadrature& quad) {
     int npc = quad.points.size();
     ElemUniv eu(npc);
+    
 
     for (int p = 0; p < npc; ++p) {
         double xi  = quad.points[p].xi;
         double eta = quad.points[p].eta;
+
+        eu.N[p][0] = 0.25 * (1 - xi) * (1 - eta);
+        eu.N[p][1] = 0.25 * (1 + xi) * (1 - eta);
+        eu.N[p][2] = 0.25 * (1 + xi) * (1 + eta);
+        eu.N[p][3] = 0.25 * (1 - xi) * (1 + eta);
 
         eu.dN_dXi[p][0] = -0.25 * (1 - eta);
         eu.dN_dXi[p][1] =  0.25 * (1 - eta);
@@ -55,7 +61,8 @@ ElemUniv createElemUniv(const GaussQuadrature& quad) {
     for (int face = 0; face < 4; face++)
     {
         eu.surfaces[face].N.clear();
-        eu.surfaces[face].detJ.clear();   // może zostać puste, nie szkodzi
+        eu.surfaces[face].detJ.clear();   
+        eu.surfaces[face].w.clear();
 
         for (int p = 0; p < npc1d; p++)
         {

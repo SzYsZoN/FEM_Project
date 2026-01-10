@@ -36,11 +36,16 @@ public:
 
     std::vector<double> P_local; 
 
+    std::vector<std::vector<std::vector<double>>> C; 
+    std::vector<std::vector<double>> Csum;           
+
+
     Element(int id, Node* n1, Node* n2, Node* n3, Node* n4, int npc);
     void computeJacobian(const ElemUniv& eu);
     void computeH(const ElemUniv& eu, const GaussQuadrature& gq, double k);
     void computeHbc(const GlobalData& data, const ElemUniv& eu);
     void computeP(const GlobalData& data, const ElemUniv& eu);
+    void computeC(const ElemUniv& eu, const GaussQuadrature& gq, const GlobalData& data);
     
 
 
@@ -54,6 +59,8 @@ public:
 
     std::vector<std::vector<double>> H_global;
     std::vector<double> P_global;
+    std::vector<std::vector<double>> C_global;
+
     int npc;
     int nN;
     int nE;
@@ -67,4 +74,5 @@ public:
     void print() const;
     void printHGlobal()const;
     void printPGlobal() const;
+    void printCGlobal() const;
 };

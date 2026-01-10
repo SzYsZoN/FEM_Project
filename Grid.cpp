@@ -228,6 +228,34 @@ void Element::computeP(const GlobalData& data, const ElemUniv& eu)
 }
 
 
+
+void Element::computeC(const ElemUniv& eu, const GaussQuadrature& gq, const GlobalData& data)
+{
+    int npc = (int)gq.points.size();
+    double rho = data.Density;
+    double c   = data.SpecificHeat;
+
+    C.resize(npc, std::vector<std::vector<double>>(4, std::vector<double>(4, 0.0)));
+    Csum.assign(4, std::vector<double>(4, 0.0));
+
+    for (int p = 0; p < npc; p++)
+    {
+        double w    = gq.points[p].weight;  
+        double detJ = jac[p].detJ;          
+
+        const auto& Np = eu.N[p];           
+
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+            {
+                C[p][i][j] = rho * c * Np[i] * Np[j] * w * detJ;
+                Csum[i][j] += C[p][i][j];
+            }
+    }
+}
+
+
+
 void Element::print() const {
     cout << "--- Element " << id << " ---\n";
 
@@ -361,6 +389,8 @@ void Grid::load(const string& filename) {
     H_global.assign(nN, std::vector<double>(nN, 0.0)); // H
 
     P_global.assign(nN, 0.0); //P
+
+    C_global.assign(nN, std::vector<double>(nN, 0.0)); //C
 }
 
 void Grid::assembleH(const GlobalData& data,const GaussQuadrature& gq, const ElemUniv& eu)
@@ -373,6 +403,7 @@ void Grid::assembleH(const GlobalData& data,const GaussQuadrature& gq, const Ele
         el.computeH(eu, gq, data.Conductivity);
         el.computeHbc(data, eu);
         el.computeP(data,eu);
+        el.computeC(eu,gq,data);
 
         int ids[4] = {
             el.nodes[0]->id - 1,
@@ -393,6 +424,14 @@ void Grid::assembleH(const GlobalData& data,const GaussQuadrature& gq, const Ele
         for (int i = 0; i < 4; i++)
         {    
             P_global[ids[i]] += el.P_local[i];
+        }
+        // C
+        for (int i = 0; i < 4; i++)
+        { 
+            for (int j = 0; j < 4; j++)
+            {
+                C_global[ids[i]][ids[j]] += el.Csum[i][j];
+            }
         }
 
         }
@@ -416,7 +455,7 @@ void Grid::print() const {
         }
         cout << "\n";
     }
-}
+}   
 
 
 void Grid::printHGlobal()const{
@@ -431,4 +470,13 @@ void Grid::printHGlobal()const{
 void Grid::printPGlobal() const {
     for(int i = 0; i < nN; i++)
         std::cout << P_global[i] << "\n";
+}
+
+void Grid::printCGlobal()const{
+        for (int i = 0; i < nN; i++) {
+        for (int j = 0; j < nN; j++) {
+            std::cout << C_global[i][j] << " ";
+        }
+        std::cout << "\n";
+    }
 }

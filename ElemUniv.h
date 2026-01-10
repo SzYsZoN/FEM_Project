@@ -8,7 +8,8 @@
 #include "Gauss.h"
 
 struct ElemUniv {
-    
+
+    std::vector<std::array<double,4>> N;
     std::vector<std::array<double,4>> dN_dXi;
     std::vector<std::array<double,4>> dN_dEta;
 
@@ -23,6 +24,7 @@ struct ElemUniv {
 
 
     explicit ElemUniv(int npc) {
+        N.resize(npc);
         dN_dXi.resize(npc);
         dN_dEta.resize(npc);
     }
