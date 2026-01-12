@@ -70,7 +70,7 @@ public:
 
     Grid(int npc);
     void load(const std::string& filename);
-    void assembleH(const GlobalData& data,const GaussQuadrature& gq, const ElemUniv& eu);
+    void assemble(const GlobalData& data,const GaussQuadrature& gq, const ElemUniv& eu);
     void print() const;
     void printHGlobal()const;
     void printPGlobal() const;

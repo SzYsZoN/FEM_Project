@@ -5,22 +5,22 @@
 #include <cctype>
 using namespace std;
 
-static inline string trim(const string& s) { // usuwa biale znaki 
+static inline string trim(const string& s) { // deletes white spraces
     size_t b = 0, e = s.size();
     while (b < e && isspace(static_cast<unsigned char>(s[b]))) ++b;
     while (e > b && isspace(static_cast<unsigned char>(s[e-1]))) --e;
     return s.substr(b, e-b);
 }
-static inline string commas_to_spaces(string s) { //zamienia przecinki na spacje 
+static inline string commas_to_spaces(string s) {   
     for (char& c : s) if (c == ',') c = ' ';
     return s;
 }
 
-GlobalData::GlobalData()//konstruktor
+GlobalData::GlobalData()
     : SimulationTime(0), SimulationStepTime(0), Conductivity(0), Alfa(0),
-      Tot(0), InitialTemp(0), Density(0), SpecificHeat(0), nN(0), nE(0),npc(0) {}//statyczne npc 
+      Tot(0), InitialTemp(0), Density(0), SpecificHeat(0), nN(0), nE(0),npc(0) {}
 
-void GlobalData::load(const string& filename) {//wczytywanie danych z pliku txt 
+void GlobalData::load(const string& filename) {
     ifstream file(filename);
     if (!file.is_open()) {
         cerr << "Nie mozna otworzyc pliku: " << filename << endl;
@@ -55,7 +55,7 @@ void GlobalData::load(const string& filename) {//wczytywanie danych z pliku txt
     }
 }
 
-void GlobalData::print() const {//wypisywanie danych globalnych ze struktury 
+void GlobalData::print() const {
     cout << " GLOBAL DATA \n"
          << " SimulationTime     : " << SimulationTime     << "\n"
          << " SimulationStepTime : " << SimulationStepTime << "\n"

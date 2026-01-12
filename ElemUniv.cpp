@@ -28,7 +28,7 @@ ElemUniv createElemUniv(const GaussQuadrature& quad) {
 
         int npc1d = std::sqrt(npc);   // dla 2x2 → npc = 4, npc1d = 2
 
-    // 1D punkty Gaussa na [-1,1]
+    
     std::vector<double> ksi1D(npc1d);
     std::vector<double> w1D(npc1d);
 

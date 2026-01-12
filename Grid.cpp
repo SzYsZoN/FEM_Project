@@ -19,14 +19,14 @@ static inline string commas_to_spaces(string s) {
     return s;
 }
 
-// ===== Node =====
+
 Node::Node(int id, double x, double y) : id(id), x(x), y(y) {}
 void Node::print() const {
     cout << "  - Node " << setw(3) << id << ": ("
          << fixed << setprecision(10) << x << ", " << y << ")\n";
 }
 
-//Wypisywanie macierzy 
+
 void printMatrix4(const std::vector<std::vector<double>>& M, const std::string& name)
 {
     std::cout << name << " =\n";
@@ -40,7 +40,7 @@ void printMatrix4(const std::vector<std::vector<double>>& M, const std::string& 
     std::cout << "\n";
 }
 
-// ===== Element =====
+
 Element::Element(int id, Node* n1, Node* n2, Node* n3, Node* n4, int npc)
     : id(id), jac(npc)
 {
@@ -61,7 +61,6 @@ void Element::computeJacobian(const ElemUniv& eu)
 
     for (int p = 0; p < npc; p++) {
 
-        // 1️⃣ Liczenie macierzy Jacobiego J
         double dx_dxi  = 0, dy_dxi = 0;
         double dx_deta = 0, dy_deta = 0;
 
@@ -78,12 +77,12 @@ void Element::computeJacobian(const ElemUniv& eu)
         jac[p].J[1][0] = dx_deta;
         jac[p].J[1][1] = dy_deta;
 
-        // 2️⃣ Liczenie detJ
+
         jac[p].detJ =
             jac[p].J[0][0] * jac[p].J[1][1] -
             jac[p].J[0][1] * jac[p].J[1][0];
 
-        // 3️⃣ Liczenie odwrotności Jacobiego
+        
         double invDet = 1.0 / jac[p].detJ;
 
         jac[p].invJ[0][0] =  jac[p].J[1][1] * invDet;
@@ -91,7 +90,7 @@ void Element::computeJacobian(const ElemUniv& eu)
         jac[p].invJ[1][0] = -jac[p].J[1][0] * invDet;
         jac[p].invJ[1][1] =  jac[p].J[0][0] * invDet;
 
-        // 4️⃣ Liczenie pochodnych dN/dx, dN/dy
+        
         for (int i = 0; i < 4; i++) {
             dNdx[p][i] =
                 jac[p].invJ[0][0] * eu.dN_dXi[p][i] +
@@ -114,7 +113,7 @@ void Element::computeH(const ElemUniv& eu, const GaussQuadrature& gq, double k)
 
     for (int p = 0; p < npc; p++)
     {
-        double wx = gq.points[p].weight;  // dla 2x2 zawsze 1
+        double wx = gq.points[p].weight;  
         double detJ = jac[p].detJ;
 
         for (int i = 0; i < 4; i++)
@@ -137,13 +136,11 @@ void Element::printH() const
 {
     std::cout << "==== Element " << id << " ====\n";
 
-    // wypisz macierze dla każdego punktu całkowania
     for (int p = 0; p < H.size(); p++) {
         std::cout << "-- H for Gauss Point " << p << " --\n";
         printMatrix4(H[p], "H_pc");
     }
 
-    // wypisz sumę wszystkich H_pc
     printMatrix4(Hsum, "Hsum (local stiffness matrix)");
 }
 
@@ -170,7 +167,7 @@ void Element::computeHbc(const GlobalData& data, const ElemUniv& eu)
         int a = faceNodes[f][0];
         int b = faceNodes[f][1];
 
-        if (!nodes[a]->BC || !nodes[b]->BC) // warunek brzegowy jak nie to przechodzi do kolejnej ściany
+        if (!nodes[a]->BC || !nodes[b]->BC) //  if not BC goes to next face
             continue;
 
         
@@ -290,20 +287,20 @@ void Element::printAll(const GaussQuadrature& gq) const
         std::cout << "DetJ = " << jac[p].detJ 
                   << " dla " << p+1 << " punktu calkowania\n\n";
 
-        // dNdx
+        
         std::cout << "wartosc dN/dx rowna sie\n";
         for (int i = 0; i < 4; i++)
             std::cout << std::fixed << std::setprecision(6) << dNdx[p][i] << ", ";
         std::cout << "\n";
 
-        // dNdy
+        
         std::cout << "wartosc dN/dy rowna sie\n";
         for (int i = 0; i < 4; i++)
             std::cout << std::fixed << std::setprecision(6) << dNdy[p][i] << ", ";
         std::cout << "\n\n";
     }
 
-    // ----------- Hsum (macierz lokalna) ----------
+    
     std::cout << "H dla elementu - " << id << "\n";
 
     for (int i = 0; i < 4; i++) {
@@ -328,7 +325,6 @@ void Element::printAll(const GaussQuadrature& gq) const
 }
 
 
-// ===== Grid =====
 Grid::Grid(int npc) : nN(0), nE(0), npc(npc) {}
 
 void Grid::load(const string& filename) {
@@ -393,25 +389,26 @@ void Grid::load(const string& filename) {
     C_global.assign(nN, std::vector<double>(nN, 0.0)); //C
 }
 
-void Grid::assembleH(const GlobalData& data,const GaussQuadrature& gq, const ElemUniv& eu)
+void Grid::assemble(const GlobalData& data,const GaussQuadrature& gq, const ElemUniv& eu)
 {
     
 
-    for (auto& el : elements) // liczenie lokalnych macierzy i agregacja
+    for (auto& el : elements) 
     {
+        //Local
         el.computeJacobian(eu);
         el.computeH(eu, gq, data.Conductivity);
         el.computeHbc(data, eu);
         el.computeP(data,eu);
         el.computeC(eu,gq,data);
-
+        //Change ID 1->0 etc
         int ids[4] = {
             el.nodes[0]->id - 1,
             el.nodes[1]->id - 1,
             el.nodes[2]->id - 1,
             el.nodes[3]->id - 1
         };
-
+        //Global
         // H
         for (int i = 0; i < 4; i++)
         {

@@ -65,8 +65,9 @@ static std::vector<double> solveCG(const std::vector<std::vector<double>>& A,
 
 int main() {
     GlobalData data;
-    data.npc = 2; // statyczne ustawienie liczby punktów całkowania 
-    data.load("Test1.txt");
+    data.npc = 4; // statyczne ustawienie liczby punktów całkowania 
+    std::string plik = "Test1.txt";
+    data.load(plik);
     data.print();
 
 
@@ -75,12 +76,12 @@ int main() {
 
 
     Grid grid(data.npc);
-    grid.load("Test1.txt");
+    grid.load(plik);
     
     std::ofstream fout("jacobians_output.txt");
 
 
-    grid.assembleH(data,gq, eu);
+    grid.assemble(data,gq, eu);
 
     int n = data.nN;               
     double dt = data.SimulationStepTime;
@@ -95,8 +96,7 @@ int main() {
         for (int j = 0; j < n; j++)
             A[i][j] = grid.H_global[i][j] + grid.C_global[i][j] / dt;
 
-    for (int s = 1; s <= steps; s++)
-        {
+    for (int s = 1; s <= steps; s++){
         std::vector<double> b(n, 0.0);
 
         for (int i = 0; i < n; i++)
@@ -107,6 +107,7 @@ int main() {
 
             b[i] = grid.P_global[i] + sum;
         }
+
         if (s == 1) {
         std::cout << "Iteration 0\n";
         // std::cout << "Matrix (H + C/dt)\n";
@@ -120,19 +121,20 @@ int main() {
         // for (int i = 0; i < n; i++)
         //     std::cout << b[i] << " ";
         // std::cout << "\n\n";
-}
+        }
 
-        // 1) rozwiąż A * T_new = b
+        
         T_new = solveCG(A, b, 1e-10, 5000);   
 
-        // 2) wypisz Tmin/Tmax
+        
         double Tmin = T_new[0], Tmax = T_new[0];
         for (double v : T_new) { Tmin = std::min(Tmin, v); Tmax = std::max(Tmax, v); }
 
         std::cout << "t=" << s*dt << "  Tmin=" << Tmin << "  Tmax=" << Tmax << "\n";
 
-        // 3) przejście do następnego kroku
+        
         T_old.swap(T_new);
+
         }
 
     
@@ -148,6 +150,7 @@ int main() {
 
     grid.printHGlobal();
     grid.printPGlobal();
+    grid.printCGlobal();
 
     std::cout.rdbuf(oldCout); // przywróć cout do konsoli
 
